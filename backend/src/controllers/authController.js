@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { User, Organization } = require('../models');
-const { generateToken } = require('../utils/token');
+
+const jwt_secret_key = process.env.JWT_SECRET || 'stockflow_jwt_secret_key_default';
 
 const register = async (req, res) => {
   const email = req.body.email;
@@ -41,11 +43,15 @@ const register = async (req, res) => {
       organizationId: organization.id,
     });
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      organizationId: organization.id,
-    });
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        organizationId: organization.id,
+      },
+      jwt_secret_key,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    );
 
     return res.status(201).json({
       message: 'Registration successful',
@@ -105,11 +111,15 @@ const login = async (req, res) => {
       });
     }
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      organizationId: user.organizationId,
-    });
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        organizationId: user.organizationId,
+      },
+      jwt_secret_key,
+      { expiresIn: '7d' }
+    );
 
     return res.status(200).json({
       message: 'Login successful',
