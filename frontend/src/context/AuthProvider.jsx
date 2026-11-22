@@ -1,28 +1,22 @@
-import React, { createContext, useState, useEffect } from 'react';
+import { useState } from 'react';
+import { AuthContext } from './AuthContext';
 import { loginUser, registerUser } from '../api/authApi';
 
-export const AuthContext = createContext(null);
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-
-    if (savedToken && savedUser) {
+  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    if (saved) {
       try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        localStorage.removeItem('token');
+        return JSON.parse(saved);
+      } catch {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  const [loading] = useState(false);
 
   const login = async (email, password) => {
     const data = await loginUser({ email, password });

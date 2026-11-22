@@ -1,4 +1,3 @@
-import React from 'react';
 import './StatCard.css';
 
 const StatCard = ({ title, value, isWarning = false }) => {

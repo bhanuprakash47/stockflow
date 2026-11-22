@@ -1,43 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Modal from '../common/Modal';
 import './ProductFormModal.css';
 
-const ProductFormModal = ({ isOpen, onClose, onSave, productToEdit, isSubmitting }) => {
+const ProductFormContent = ({ onClose, onSave, productToEdit, isSubmitting }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    description: '',
-    quantityOnHand: 0,
-    costPrice: '',
-    sellingPrice: '',
-    lowStockThreshold: '',
+    name: productToEdit?.name || '',
+    sku: productToEdit?.sku || '',
+    description: productToEdit?.description || '',
+    quantityOnHand: productToEdit?.quantityOnHand !== undefined ? productToEdit.quantityOnHand : 0,
+    costPrice: productToEdit?.costPrice !== null && productToEdit?.costPrice !== undefined ? productToEdit.costPrice : '',
+    sellingPrice: productToEdit?.sellingPrice !== null && productToEdit?.sellingPrice !== undefined ? productToEdit.sellingPrice : '',
+    lowStockThreshold: productToEdit?.lowStockThreshold !== null && productToEdit?.lowStockThreshold !== undefined ? productToEdit.lowStockThreshold : '',
   });
   const [formError, setFormError] = useState('');
-
-  useEffect(() => {
-    if (productToEdit) {
-      setFormData({
-        name: productToEdit.name || '',
-        sku: productToEdit.sku || '',
-        description: productToEdit.description || '',
-        quantityOnHand: productToEdit.quantityOnHand !== undefined ? productToEdit.quantityOnHand : 0,
-        costPrice: productToEdit.costPrice !== null && productToEdit.costPrice !== undefined ? productToEdit.costPrice : '',
-        sellingPrice: productToEdit.sellingPrice !== null && productToEdit.sellingPrice !== undefined ? productToEdit.sellingPrice : '',
-        lowStockThreshold: productToEdit.lowStockThreshold !== null && productToEdit.lowStockThreshold !== undefined ? productToEdit.lowStockThreshold : '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        sku: '',
-        description: '',
-        quantityOnHand: 0,
-        costPrice: '',
-        sellingPrice: '',
-        lowStockThreshold: '',
-      });
-    }
-    setFormError('');
-  }, [productToEdit, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,11 +32,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, productToEdit, isSubmitting
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={productToEdit ? 'Edit Product' : 'Add New Product'}
-    >
+    <>
       {formError && <div className="alert-error">{formError}</div>}
 
       <form onSubmit={handleSubmit} className="product-form">
@@ -188,6 +159,26 @@ const ProductFormModal = ({ isOpen, onClose, onSave, productToEdit, isSubmitting
           </button>
         </div>
       </form>
+    </>
+  );
+};
+
+const ProductFormModal = ({ isOpen, onClose, onSave, productToEdit, isSubmitting }) => {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={productToEdit ? 'Edit Product' : 'Add New Product'}
+    >
+      {isOpen && (
+        <ProductFormContent
+          key={productToEdit ? productToEdit.id : 'new-product'}
+          onClose={onClose}
+          onSave={onSave}
+          productToEdit={productToEdit}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </Modal>
   );
 };

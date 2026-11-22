@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import Sidebar from '../components/common/Sidebar';
 import StatCard from '../components/dashboard/StatCard';
@@ -31,7 +31,26 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
-    loadDashboardData();
+    let ignore = false;
+    fetchDashboard()
+      .then((data) => {
+        if (!ignore) {
+          setMetrics(data);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err.response?.data?.error || 'Failed to load dashboard metrics.');
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   return (

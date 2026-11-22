@@ -5,11 +5,20 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
+const allowedOrigins = process.env.CLIENT_URL ? [process.env.CLIENT_URL, 'http://localhost:5173'] : ['http://localhost:5173'];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.CLIENT_URL === '*') {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
@@ -34,5 +43,11 @@ app.use('/dashboard', dashboardRoutes);
 
 app.use('/api/settings', settingsRoutes);
 app.use('/settings', settingsRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+app.use(errorHandler);
 
 module.exports = app;

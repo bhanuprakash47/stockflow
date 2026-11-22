@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import Sidebar from '../components/common/Sidebar';
 import Modal from '../components/common/Modal';
@@ -43,7 +43,26 @@ const ProductsPage = () => {
   };
 
   useEffect(() => {
-    loadProducts();
+    let ignore = false;
+    fetchProducts()
+      .then((data) => {
+        if (!ignore) {
+          setProducts(data.products || []);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err.response?.data?.error || 'Failed to load products.');
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleSearchSubmit = (e) => {

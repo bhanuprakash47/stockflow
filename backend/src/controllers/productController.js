@@ -82,6 +82,12 @@ const createProduct = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in createProduct:', err.message);
+    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+      const detailMessage = err.errors && err.errors.length > 0 ? err.errors.map(e => e.message).join(', ') : err.message;
+      return res.status(400).json({
+        error: detailMessage,
+      });
+    }
     return res.status(500).json({
       error: 'Failed to create product',
       details: err.message,
@@ -264,6 +270,12 @@ const updateProduct = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in updateProduct:', err.message);
+    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+      const detailMessage = err.errors && err.errors.length > 0 ? err.errors.map(e => e.message).join(', ') : err.message;
+      return res.status(400).json({
+        error: detailMessage,
+      });
+    }
     return res.status(500).json({
       error: 'Failed to update product',
       details: err.message,
