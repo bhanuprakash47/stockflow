@@ -4,7 +4,6 @@ const User = require('./User');
 const Product = require('./Product');
 const Setting = require('./Setting');
 
-// Relationship: Organization & User
 Organization.hasMany(User, {
   foreignKey: 'organizationId',
   as: 'users',
@@ -16,7 +15,6 @@ User.belongsTo(Organization, {
   as: 'organization',
 });
 
-// Relationship: Organization & Product
 Organization.hasMany(Product, {
   foreignKey: 'organizationId',
   as: 'products',
@@ -28,7 +26,6 @@ Product.belongsTo(Organization, {
   as: 'organization',
 });
 
-// Relationship: Organization & Setting (One setting profile per organization)
 Organization.hasOne(Setting, {
   foreignKey: 'organizationId',
   as: 'settings',

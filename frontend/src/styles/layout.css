@@ -1,1 +1,33 @@
-/* Main app flexbox layout (sidebar, main content area, header) */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 24px;
+  background-color: #f3f4f6;
+  box-sizing: border-box;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
