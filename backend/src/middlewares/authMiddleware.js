@@ -1,6 +1,18 @@
 const jwt = require('jsonwebtoken');
 
-const jwt_secret_key = process.env.JWT_SECRET ||  'stockflow_jwt_secret_key_default';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET || process.env.jwt_secret_key;
+  if (process.env.NODE_ENV === 'production' && !secret) {
+    throw new Error('JWT secret must be configured in production environment');
+  }
+  return secret || 'stockflow_jwt_secret_key_default';
+};
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET && !process.env.jwt_secret_key) {
+  throw new Error('JWT secret must be configured in production environment');
+}
+
+const jwt_secret_key = process.env.JWT_SECRET || process.env.jwt_secret_key || 'stockflow_jwt_secret_key_default';
 
 const verifyToken = (req, res, next) => {
   try {
@@ -20,7 +32,8 @@ const verifyToken = (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, jwt_secret_key);
+    const secretKey = getJwtSecret();
+    const decoded = jwt.verify(token, secretKey);
 
     req.user = decoded;
     req.organizationId = decoded.organizationId;

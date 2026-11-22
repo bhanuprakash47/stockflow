@@ -2,7 +2,19 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Organization } = require('../models');
 
-const jwt_secret_key = process.env.JWT_SECRET || 'stockflow_jwt_secret_key_default';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET || process.env.jwt_secret_key;
+  if (process.env.NODE_ENV === 'production' && !secret) {
+    throw new Error('JWT secret must be configured in production environment');
+  }
+  return secret || 'stockflow_jwt_secret_key_default';
+};
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET && !process.env.jwt_secret_key) {
+  throw new Error('JWT secret must be configured in production environment');
+}
+
+const jwt_secret_key = process.env.JWT_SECRET || process.env.jwt_secret_key || 'stockflow_jwt_secret_key_default';
 
 const register = async (req, res) => {
   const email = req.body.email;
@@ -49,7 +61,7 @@ const register = async (req, res) => {
         email: user.email,
         organizationId: organization.id,
       },
-      jwt_secret_key,
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
 
@@ -117,7 +129,7 @@ const login = async (req, res) => {
         email: user.email,
         organizationId: user.organizationId,
       },
-      jwt_secret_key,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 

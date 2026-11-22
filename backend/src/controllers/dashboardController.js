@@ -12,20 +12,19 @@ const getDashboardOverview = async (req, res) => {
       ? setting.defaultLowStockThreshold
       : 5;
 
-    const products = await Product.findAll({
-      where: { organizationId },
-      order: [['name', 'ASC']],
-    });
+    const [totalProducts, totalQuantityOnHand, products] = await Promise.all([
+      Product.count({ where: { organizationId } }),
+      Product.sum('quantityOnHand', { where: { organizationId } }),
+      Product.findAll({
+        where: { organizationId },
+        order: [['name', 'ASC']],
+      }),
+    ]);
 
-    const totalProducts = products.length;
-
-    let totalQuantityOnHand = 0;
     const lowStockItems = [];
 
     for (const item of products) {
       const qty = item.quantityOnHand || 0;
-      totalQuantityOnHand += qty;
-
       const threshold = item.lowStockThreshold !== null && item.lowStockThreshold !== undefined
         ? item.lowStockThreshold
         : defaultThreshold;
@@ -45,7 +44,7 @@ const getDashboardOverview = async (req, res) => {
 
     return res.status(200).json({
       totalProducts,
-      totalQuantityOnHand,
+      totalQuantityOnHand: totalQuantityOnHand || 0,
       lowStockCount: lowStockItems.length,
       lowStockItems,
     });

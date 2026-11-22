@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Product, Setting } = require('../models');
+const { Product, Setting, sequelize } = require('../models');
 
 const createProduct = async (req, res) => {
   try {
@@ -286,52 +286,94 @@ const updateProduct = async (req, res) => {
 const adjustStock = async (req, res) => {
   try {
     const organizationId = req.organizationId || req.user?.organizationId;
-    const { id } = req.params;
-    const { adjustment } = req.body;
+    if (!organizationId) {
+      return res.status(401).json({ error: 'Organization context missing' });
+    }
 
-    const delta = adjustment !== undefined ? parseInt(adjustment, 10) : NaN;
+    const { id } = req.params;
+    const { adjustment, delta: bodyDelta } = req.body;
+    const rawDelta = adjustment !== undefined ? adjustment : bodyDelta;
+    const delta = rawDelta !== undefined ? parseInt(rawDelta, 10) : NaN;
 
     if (isNaN(delta)) {
       return res.status(400).json({ error: 'A valid adjustment quantity is required' });
     }
 
-    const product = await Product.findOne({
-      where: {
-        id,
-        organizationId,
-      },
-    });
+    let updatedProduct;
+    try {
+      updatedProduct = await sequelize.transaction(async (t) => {
+        const product = await Product.findOne({
+          where: {
+            id,
+            organizationId,
+          },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
 
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
+        if (!product) {
+          const notFoundError = new Error('Product not found');
+          notFoundError.statusCode = 404;
+          throw notFoundError;
+        }
 
-    const nextQuantity = product.quantityOnHand + delta;
-    if (nextQuantity < 0) {
-      return res.status(400).json({
-        error: 'Stock quantity cannot fall below 0',
-        currentQuantity: product.quantityOnHand,
+        const nextQuantity = product.quantityOnHand + delta;
+        if (nextQuantity < 0) {
+          const negativeError = new Error('Stock quantity cannot fall below 0');
+          negativeError.statusCode = 400;
+          negativeError.currentQuantity = product.quantityOnHand;
+          throw negativeError;
+        }
+
+        product.quantityOnHand = nextQuantity;
+        await product.save({ transaction: t });
+
+        return product;
       });
+    } catch (txErr) {
+      if (txErr.statusCode === 404) {
+        return res.status(404).json({ error: txErr.message });
+      }
+      if (txErr.statusCode === 400) {
+        return res.status(400).json({
+          error: txErr.message,
+          currentQuantity: txErr.currentQuantity,
+        });
+      }
+      if (txErr.name === 'SequelizeValidationError' || txErr.name === 'SequelizeUniqueConstraintError') {
+        const detailMessage = txErr.errors && txErr.errors.length > 0
+          ? txErr.errors.map((e) => e.message).join(', ')
+          : txErr.message;
+        return res.status(400).json({
+          error: detailMessage,
+        });
+      }
+      throw txErr;
     }
-
-    product.quantityOnHand = nextQuantity;
-    await product.save();
 
     const setting = await Setting.findOne({ where: { organizationId } });
     const defaultThreshold = setting ? setting.defaultLowStockThreshold : 5;
-    const threshold = product.lowStockThreshold !== null && product.lowStockThreshold !== undefined
-      ? product.lowStockThreshold
+    const threshold = updatedProduct.lowStockThreshold !== null && updatedProduct.lowStockThreshold !== undefined
+      ? updatedProduct.lowStockThreshold
       : defaultThreshold;
 
     return res.status(200).json({
       message: 'Stock adjusted successfully',
       product: {
-        ...product.toJSON(),
-        isLowStock: product.quantityOnHand <= threshold,
+        ...updatedProduct.toJSON(),
+        isLowStock: updatedProduct.quantityOnHand <= threshold,
       },
     });
   } catch (err) {
     console.error('Error in adjustStock:', err.message);
+    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+      const detailMessage = err.errors && err.errors.length > 0
+        ? err.errors.map((e) => e.message).join(', ')
+        : err.message;
+      return res.status(400).json({
+        error: detailMessage,
+      });
+    }
     return res.status(500).json({
       error: 'Failed to adjust stock',
       details: err.message,
